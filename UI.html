@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo">IT-PR0</div>
+        <div class="brand-text">
+          <div class="brand-title">SUPPORT</div>
+          <div class="brand-sub">Knowledge Base</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="roleBadge" class="role-badge">viewer</span>
+        <div class="user-pill">
+          <div class="user-avatar">JD</div>
+          <div>
+            <div id="userName" class="user-name">User</div>
+            <div id="userRole" class="user-role">Role</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-search">
+        <input id="searchBox" type="text" placeholder="Search for solutions (e.g., VPN setup, password reset, printer issue)">
+        <button class="btn btn-primary" onclick="focusCreate()">Add New Article</button>
+        <button class="btn btn-secondary" onclick="exportAllPdf()">Export PDF</button>
+      </div>
+      <h1>IT Support Knowledge Base</h1>
+      <p>Find answers, submit solutions, and stay connected.</p>
+    </section>
+
+    <main class="layout">
+      <section class="main-col">
+        <div class="section-head">
+          <h2>Browse by Category</h2>
+          <div id="totalCount" class="total-count"></div>
+        </div>
+        <div id="categoryGrid" class="category-grid"></div>
+
+        <div class="section-head">
+          <h2>Recently Updated Articles</h2>
+        </div>
+        <div id="recentList" class="article-list"></div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h2 id="panelTitle">Add Article</h2>
+              <p id="panelHint">Create a new knowledge base article.</p>
+            </div>
+            <div class="panel-actions-top">
+              <button class="btn btn-ghost" onclick="resetForm()">Reset</button>
+            </div>
+          </div>
+
+          <label>Article Title</label>
+          <input id="title" type="text" placeholder="Fixing Wi-Fi dropouts">
+
+          <label>Category</label>
+          <select id="category"></select>
+
+          <label>Visibility</label>
+          <select id="visibility">
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+          </select>
+
+          <label>Tags</label>
+          <input id="tags" type="text" placeholder="wifi, router, network">
+
+          <label>Instructions</label>
+          <textarea id="content" rows="9" placeholder="Write step-by-step instructions..."></textarea>
+
+          <label>Attachment</label>
+          <input id="file" type="file" accept="image/*,.pdf,.doc,.docx,.txt">
+          <div id="existingAttachment" class="muted"></div>
+
+          <label>Created By</label>
+          <input id="createdBy" type="text" value="Jane Doe">
+
+          <input id="articleId" type="hidden">
+          <input id="existingAttachmentUrl" type="hidden">
+          <input id="existingAttachmentName" type="hidden">
+
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveArticle()">Save Article</button>
+            <button class="btn btn-secondary" onclick="cancelEdit()">Cancel Edit</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <div id="modalWrap" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h3>Edit Article</h3>
+          <p>Update article details and save changes.</p>
+        </div>
+        <button class="icon-btn" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <?!= include('Modal'); ?>
+  <?!= include('Client'); ?>
+</body>
+</html>

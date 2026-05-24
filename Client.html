@@ -1,0 +1,242 @@
+<script>
+let appState = { categories: [], recent: [], total: 0, role: 'viewer', email: '', name: '' };
+let searchTimer = null;
+
+function el(id){ return document.getElementById(id); }
+
+function toast(msg, type='success') {
+  const t = el('toast');
+  if (!t) {
+    alert(msg);
+    return;
+  }
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  t.classList.remove('hidden');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => t.classList.add('hidden'), 2200);
+}
+
+function loadData(query='') {
+  google.script.run
+    .withSuccessHandler(renderData)
+    .withFailureHandler(showError)
+    .getAppData(query);
+}
+
+function renderData(data) {
+  appState = data || { categories: [], recent: [], total: 0, role: 'viewer', email: '', name: '' };
+
+  el('totalCount').innerText = `${appState.total || 0} articles`;
+  el('userName').innerText = appState.name || appState.email || 'User';
+  el('userRole').innerText = appState.role || 'viewer';
+  el('roleBadge').innerText = appState.role || 'viewer';
+
+  el('categoryGrid').innerHTML = (appState.categories || []).map(c => `
+    <div class="category-card" onclick="filterCategory('${escapeJs(c.name)}')">
+      <div class="category-icon">${escapeHtml(c.icon || '📁')}</div>
+      <div class="category-name">${escapeHtml(c.name)}</div>
+      <div class="category-count">${c.count} articles</div>
+    </div>
+  `).join('') || '<div class="category-card">No categories</div>';
+
+  el('category').innerHTML = (appState.categories || []).map(c =>
+    `<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}</option>`
+  ).join('');
+
+  el('recentList').innerHTML = (appState.recent || []).map(a => `
+    <div class="article-item">
+      <div class="article-top">
+        <div>
+          <div class="article-title">${escapeHtml(a.title)}
+            <span class="badge">${escapeHtml(a.category || '')}</span>
+            <span class="badge">${escapeHtml(a.visibility || 'public')}</span>
+          </div>
+          <div class="article-meta">${escapeHtml(a.tags || '')} • ${formatDate(a.updatedAt || a.createdAt)} • By ${escapeHtml(a.createdBy || '')}</div>
+          <div class="article-content">${escapeHtml(truncate(a.content || '', 180))}</div>
+          ${a.attachmentUrl ? `<div class="article-meta"><a href="${a.attachmentUrl}" target="_blank">Open attachment</a></div>` : ''}
+        </div>
+        <div class="row-actions">
+          <button class="link-btn" onclick="editArticle('${escapeJs(a.id)}')">Edit</button>
+          <button class="link-btn" onclick="exportArticle('${escapeJs(a.id)}')">PDF</button>
+          <button class="link-btn link-danger" onclick="deleteArticle('${escapeJs(a.id)}')">Delete</button>
+        </div>
+      </div>
+    </div>
+  `).join('') || '<div class="article-item">No articles found.</div>';
+}
+
+function filterCategory(name){
+  el('searchBox').value = name;
+  loadData(name);
+}
+
+el('searchBox').addEventListener('input', function(){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadData(this.value.trim()), 200);
+});
+
+function focusCreate() {
+  resetForm();
+  el('title').focus();
+  toast('Form siap untuk tambah artikel.');
+}
+
+function resetForm() {
+  el('articleId').value = '';
+  el('title').value = '';
+  el('tags').value = '';
+  el('content').value = '';
+  el('file').value = '';
+  el('existingAttachment').innerHTML = '';
+  el('existingAttachmentUrl').value = '';
+  el('existingAttachmentName').value = '';
+  el('createdBy').value = 'Jane Doe';
+  el('visibility').value = 'public';
+  if (el('category').options.length) el('category').selectedIndex = 0;
+  el('panelTitle').innerText = 'Add Article';
+  el('panelHint').innerText = 'Create a new knowledge base article.';
+}
+
+function cancelEdit() {
+  resetForm();
+}
+
+function saveArticle() {
+  const title = el('title').value.trim();
+  const category = el('category').value;
+  const content = el('content').value.trim();
+  const createdBy = el('createdBy').value.trim();
+
+  if (!title || !category || !content || !createdBy) {
+    toast('Lengkapi Title, Category, Instructions, dan Created By.', 'error');
+    return;
+  }
+
+  const file = el('file').files[0];
+  const payload = {
+    id: el('articleId').value || '',
+    title,
+    category,
+    visibility: el('visibility').value,
+    tags: el('tags').value.trim(),
+    content,
+    createdBy,
+    existingAttachmentUrl: el('existingAttachmentUrl').value,
+    existingAttachmentName: el('existingAttachmentName').value
+  };
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      payload.attachmentBase64 = e.target.result.split(',')[1];
+      payload.attachmentName = file.name;
+      payload.attachmentMime = file.type || 'application/octet-stream';
+      submitSave(payload);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    submitSave(payload);
+  }
+}
+
+function submitSave(payload) {
+  google.script.run
+    .withSuccessHandler((res) => {
+      toast('Data berhasil disimpan.');
+      resetForm();
+      loadData(el('searchBox').value.trim());
+    })
+    .withFailureHandler((err) => {
+      showError(err);
+    })
+    .saveArticle(payload);
+}
+
+function editArticle(id) {
+  google.script.run
+    .withSuccessHandler(article => {
+      if (!article) {
+        toast('Article not found', 'error');
+        return;
+      }
+      if (typeof openModalContent === 'function') {
+        openModalContent(article);
+      } else {
+        el('articleId').value = article.id;
+        el('title').value = article.title || '';
+        el('category').value = article.category || '';
+        el('visibility').value = article.visibility || 'public';
+        el('tags').value = article.tags || '';
+        el('content').value = article.content || '';
+        el('createdBy').value = article.createdBy || 'Jane Doe';
+        el('existingAttachmentUrl').value = article.attachmentUrl || '';
+        el('existingAttachmentName').value = article.attachmentName || '';
+        el('existingAttachment').innerHTML = article.attachmentUrl
+          ? `Current file: <a href="${article.attachmentUrl}" target="_blank">${escapeHtml(article.attachmentName || 'open')}</a>`
+          : '';
+        el('panelTitle').innerText = 'Edit Article';
+        el('panelHint').innerText = 'Update the article and save changes.';
+        toast('Article loaded for editing.');
+      }
+    })
+    .withFailureHandler(showError)
+    .getArticleById(id);
+}
+
+function deleteArticle(id) {
+  if (!confirm('Delete this article permanently?')) return;
+  google.script.run
+    .withSuccessHandler(() => {
+      toast('Article deleted.');
+      loadData(el('searchBox').value.trim());
+    })
+    .withFailureHandler(showError)
+    .deleteArticle(id);
+}
+
+function exportArticle(id) {
+  google.script.run
+    .withSuccessHandler(res => {
+      if (res && res.url) window.open(res.url, '_blank');
+    })
+    .withFailureHandler(showError)
+    .exportArticlePdf(id);
+}
+
+function exportAllPdf() {
+  google.script.run
+    .withSuccessHandler(res => {
+      if (res && res.url) window.open(res.url, '_blank');
+    })
+    .withFailureHandler(showError)
+    .exportAllArticlesPdf(el('searchBox').value.trim());
+}
+
+function showError(err) {
+  const msg = (err && err.message) ? err.message : String(err || 'Unknown error');
+  toast(msg, 'error');
+  console.error(err);
+}
+
+function formatDate(d){
+  try { return new Date(d).toLocaleString(); } catch(e) { return ''; }
+}
+
+function truncate(text, maxLen) {
+  const s = String(text || '');
+  return s.length > maxLen ? s.slice(0, maxLen).trim() + '...' : s;
+}
+
+function escapeHtml(s){
+  return String(s || '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
+function escapeJs(s){ return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+
+window.addEventListener('load', function(){
+  loadData('');
+});
+</script>

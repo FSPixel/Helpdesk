@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div style="padding:18px 18px 22px">
+    <div class="section-head">
+      <h2>Manage Users</h2>
+      <div class="toolbar">
+        <button class="btn btn-primary" onclick="addRow()">Add User</button>
+        <button class="btn btn-secondary" onclick="saveAll()">Save Changes</button>
+        <button class="btn btn-ghost" onclick="google.script.host.close()">Close</button>
+      </div>
+    </div>
+
+    <p class="small">Role options: admin, editor, viewer, auditor. Active must be TRUE or FALSE.</p>
+
+    <div class="table-wrap">
+      <table class="table" id="usersTable">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Active</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="usersBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function init() {
+      const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+      const values = sh.getDataRange().getValues().slice(1);
+      const body = document.getElementById('usersBody');
+      body.innerHTML = values.map((r, i) => rowHtml(i, r[0], r[1], r[2], r[3])).join('');
+    }
+
+    function rowHtml(idx, email='', name='', role='viewer', active='TRUE') {
+      return `
+      <tr data-idx="${idx}">
+        <td><input value="${escapeAttr(email)}"></td>
+        <td><input value="${escapeAttr(name)}"></td>
+        <td>
+          <select>
+            <option value="admin" ${role==='admin'?'selected':''}>admin</option>
+            <option value="editor" ${role==='editor'?'selected':''}>editor</option>
+            <option value="viewer" ${role==='viewer'?'selected':''}>viewer</option>
+            <option value="auditor" ${role==='auditor'?'selected':''}>auditor</option>
+          </select>
+        </td>
+        <td>
+          <select>
+            <option value="TRUE" ${String(active).toUpperCase()==='TRUE'?'selected':''}>TRUE</option>
+            <option value="FALSE" ${String(active).toUpperCase()==='FALSE'?'selected':''}>FALSE</option>
+          </select>
+        </td>
+        <td><button class="btn btn-ghost" onclick="removeRow(this)">Remove</button></td>
+      </tr>`;
+    }
+
+    function addRow() {
+      document.getElementById('usersBody').insertAdjacentHTML('beforeend', rowHtml(Date.now(),'','','viewer','TRUE'));
+    }
+
+    function removeRow(btn) {
+      btn.closest('tr').remove();
+    }
+
+    function saveAll() {
+      const rows = [...document.querySelectorAll('#usersBody tr')].map(tr => {
+        const inputs = tr.querySelectorAll('input, select');
+        return [inputs[0].value.trim(), inputs[1].value.trim(), inputs[2].value, inputs[3].value];
+      }).filter(r => r[0]);
+
+      google.script.run
+        .withSuccessHandler(() => alert('Users saved'))
+        .withFailureHandler(err => alert(err.message || err))
+        .saveUsers(rows);
+    }
+
+    function escapeAttr(s){
+      return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
