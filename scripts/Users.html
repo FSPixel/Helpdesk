@@ -1,21 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <base target="_top">
-  <?!= include('Styles'); ?>
-</head>
-<body>
-  <div style="padding:18px 18px 22px">
-    <div class="section-head">
-      <h2>Manage Users</h2>
-      <div class="toolbar">
-        <button class="btn btn-primary" onclick="addRow()">Add User</button>
-        <button class="btn btn-secondary" onclick="saveAll()">Save Changes</button>
-        <button class="btn btn-ghost" onclick="google.script.host.close()">Close</button>
-      </div>
-    </div>
+<script>
+function openUsersEditor() {
+  google.script.run
+    .withSuccessHandler(renderUsersEditor)
+    .withFailureHandler(showUsersError)
+    .getUsersData();
+}
 
-    <p class="small">Role options: admin, editor, viewer, auditor. Active must be TRUE or FALSE.</p>
+function renderUsersEditor(data) {
+  const rows = (data && data.users) ? data.users : [];
+  const body = document.getElementById('usersBody');
+
+  body.innerHTML = `
+    <div class="toolbar" style="margin-bottom:12px">
+      <button class="btn btn-primary" onclick="addUserRow()">Add Row</button>
+      <button class="btn btn-secondary" onclick="saveUsersData()">Save Users</button>
+    </div>
 
     <div class="table-wrap">
       <table class="table" id="usersTable">
@@ -28,67 +27,82 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody id="usersBody"></tbody>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td><input class="u-email" value="${escapeAttr(r.email || '')}"></td>
+              <td><input class="u-name" value="${escapeAttr(r.name || '')}"></td>
+              <td>
+                <select class="u-role">
+                  <option value="admin" ${r.role==='admin'?'selected':''}>admin</option>
+                  <option value="editor" ${r.role==='editor'?'selected':''}>editor</option>
+                  <option value="auditor" ${r.role==='auditor'?'selected':''}>auditor</option>
+                  <option value="viewer" ${r.role==='viewer'?'selected':''}>viewer</option>
+                </select>
+              </td>
+              <td>
+                <select class="u-active">
+                  <option value="TRUE" ${String(r.active).toUpperCase()!=='FALSE'?'selected':''}>TRUE</option>
+                  <option value="FALSE" ${String(r.active).toUpperCase()==='FALSE'?'selected':''}>FALSE</option>
+                </select>
+              </td>
+              <td><button class="btn btn-ghost" onclick="this.closest('tr').remove()">Delete</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
       </table>
     </div>
-  </div>
+  `;
 
-  <script>
-    function init() {
-      const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
-      const values = sh.getDataRange().getValues().slice(1);
-      const body = document.getElementById('usersBody');
-      body.innerHTML = values.map((r, i) => rowHtml(i, r[0], r[1], r[2], r[3])).join('');
-    }
+  if (!rows.length) addUserRow();
+}
 
-    function rowHtml(idx, email='', name='', role='viewer', active='TRUE') {
-      return `
-      <tr data-idx="${idx}">
-        <td><input value="${escapeAttr(email)}"></td>
-        <td><input value="${escapeAttr(name)}"></td>
-        <td>
-          <select>
-            <option value="admin" ${role==='admin'?'selected':''}>admin</option>
-            <option value="editor" ${role==='editor'?'selected':''}>editor</option>
-            <option value="viewer" ${role==='viewer'?'selected':''}>viewer</option>
-            <option value="auditor" ${role==='auditor'?'selected':''}>auditor</option>
-          </select>
-        </td>
-        <td>
-          <select>
-            <option value="TRUE" ${String(active).toUpperCase()==='TRUE'?'selected':''}>TRUE</option>
-            <option value="FALSE" ${String(active).toUpperCase()==='FALSE'?'selected':''}>FALSE</option>
-          </select>
-        </td>
-        <td><button class="btn btn-ghost" onclick="removeRow(this)">Remove</button></td>
-      </tr>`;
-    }
+function addUserRow() {
+  const tbody = document.querySelector('#usersTable tbody');
+  if (!tbody) return;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input class="u-email" placeholder="user@company.com"></td>
+    <td><input class="u-name" placeholder="User Name"></td>
+    <td>
+      <select class="u-role">
+        <option value="admin">admin</option>
+        <option value="editor" selected>editor</option>
+        <option value="auditor">auditor</option>
+        <option value="viewer">viewer</option>
+      </select>
+    </td>
+    <td>
+      <select class="u-active">
+        <option value="TRUE" selected>TRUE</option>
+        <option value="FALSE">FALSE</option>
+      </select>
+    </td>
+    <td><button class="btn btn-ghost" onclick="this.closest('tr').remove()">Delete</button></td>
+  `;
+  tbody.appendChild(tr);
+}
 
-    function addRow() {
-      document.getElementById('usersBody').insertAdjacentHTML('beforeend', rowHtml(Date.now(),'','','viewer','TRUE'));
-    }
+function saveUsersData() {
+  const rows = Array.from(document.querySelectorAll('#usersTable tbody tr')).map(tr => ([
+    tr.querySelector('.u-email').value.trim(),
+    tr.querySelector('.u-name').value.trim(),
+    tr.querySelector('.u-role').value,
+    tr.querySelector('.u-active').value
+  ])).filter(r => r[0]);
 
-    function removeRow(btn) {
-      btn.closest('tr').remove();
-    }
+  google.script.run
+    .withSuccessHandler(() => {
+      if (typeof toast === 'function') toast('Users saved.');
+    })
+    .withFailureHandler(showUsersError)
+    .saveUsers(rows);
+}
 
-    function saveAll() {
-      const rows = [...document.querySelectorAll('#usersBody tr')].map(tr => {
-        const inputs = tr.querySelectorAll('input, select');
-        return [inputs[0].value.trim(), inputs[1].value.trim(), inputs[2].value, inputs[3].value];
-      }).filter(r => r[0]);
-
-      google.script.run
-        .withSuccessHandler(() => alert('Users saved'))
-        .withFailureHandler(err => alert(err.message || err))
-        .saveUsers(rows);
-    }
-
-    function escapeAttr(s){
-      return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
-
-    window.addEventListener('load', init);
-  </script>
-</body>
-</html>
+function showUsersError(err) {
+  const msg = (err && err.message) ? err.message : String(err || 'Users error');
+  if (typeof toast === 'function') toast(msg, 'error');
+  else alert(msg);
+  console.error(err);
+}
+</script>

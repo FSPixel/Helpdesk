@@ -1,24 +1,25 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <base target="_top">
-  <?!= include('Styles'); ?>
-</head>
-<body>
-  <div style="padding:18px 18px 22px">
-    <div class="section-head">
-      <h2>Audit Log</h2>
-      <div class="toolbar">
-        <button class="btn btn-secondary" onclick="reloadLogs()">Refresh</button>
-        <button class="btn btn-ghost" onclick="google.script.host.close()">Close</button>
-      </div>
+<script>
+function openAuditViewer() {
+  google.script.run
+    .withSuccessHandler(renderAuditViewer)
+    .withFailureHandler(showAuditError)
+    .getAuditLogs(300);
+}
+
+function renderAuditViewer(rows) {
+  const body = document.getElementById('auditBody');
+  const data = rows || [];
+
+  body.innerHTML = `
+    <div class="toolbar" style="margin-bottom:12px">
+      <button class="btn btn-secondary" onclick="openAuditViewer()">Refresh</button>
     </div>
 
     <div class="table-wrap">
       <table class="table">
         <thead>
           <tr>
-            <th>Timestamp</th>
+            <th>Time</th>
             <th>Action</th>
             <th>Detail</th>
             <th>Actor</th>
@@ -27,41 +28,28 @@
             <th>Meta</th>
           </tr>
         </thead>
-        <tbody id="auditBody"></tbody>
+        <tbody>
+          ${data.map(r => `
+            <tr>
+              <td>${escapeHtml(formatDate(r.ts))}</td>
+              <td>${escapeHtml(r.action || '')}</td>
+              <td>${escapeHtml(r.detail || '')}</td>
+              <td>${escapeHtml(r.actor || '')}</td>
+              <td>${escapeHtml(r.email || '')}</td>
+              <td>${escapeHtml(r.role || '')}</td>
+              <td style="max-width:240px;word-break:break-all">${escapeHtml(r.meta || '')}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="7">No logs found</td></tr>'}
+        </tbody>
       </table>
     </div>
-  </div>
+  `;
+}
 
-  <script>
-    function reloadLogs() {
-      google.script.run
-        .withSuccessHandler(render)
-        .withFailureHandler(err => alert(err.message || err))
-        .getAuditLogs(300);
-    }
-
-    function render(rows) {
-      document.getElementById('auditBody').innerHTML = rows.map(r => `
-        <tr>
-          <td>${escapeHtml(formatDate(r.ts))}</td>
-          <td><span class="pill">${escapeHtml(r.action || '')}</span></td>
-          <td>${escapeHtml(r.detail || '')}</td>
-          <td>${escapeHtml(r.actor || '')}</td>
-          <td>${escapeHtml(r.email || '')}</td>
-          <td>${escapeHtml(r.role || '')}</td>
-          <td style="max-width:420px;word-break:break-word">${escapeHtml(r.meta || '')}</td>
-        </tr>
-      `).join('');
-    }
-
-    function formatDate(d){
-      try { return new Date(d).toLocaleString(); } catch(e){ return ''; }
-    }
-    function escapeHtml(s){
-      return String(s || '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
-
-    window.addEventListener('load', reloadLogs);
-  </script>
-</body>
-</html>
+function showAuditError(err) {
+  const msg = (err && err.message) ? err.message : String(err || 'Audit error');
+  if (typeof toast === 'function') toast(msg, 'error');
+  else alert(msg);
+  console.error(err);
+}
+</script>

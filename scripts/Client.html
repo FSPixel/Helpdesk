@@ -27,22 +27,48 @@ function loadData(query='') {
 function renderData(data) {
   appState = data || { categories: [], recent: [], total: 0, role: 'viewer', email: '', name: '' };
 
+  const cats = Array.isArray(appState.categories) ? appState.categories : [];
+  const select = el('category');
+
+  if (cats.length) {
+    select.innerHTML = cats.map(c =>
+      `<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}</option>`
+    ).join('');
+    select.value = cats[0].name;
+  } else {
+    select.innerHTML = `
+      <option value="Hardware Issues">Hardware Issues</option>
+      <option value="Software & Apps">Software & Apps</option>
+      <option value="Network & Internet">Network & Internet</option>
+      <option value="Account & Security">Account & Security</option>
+      <option value="Onboarding">Onboarding</option>
+      <option value="Printer Support">Printer Support</option>
+      <option value="General Support">General Support</option>
+      <option value="Other">Other</option>
+    `;
+    select.value = 'Hardware Issues';
+  }
+
+  el('categoryGrid').innerHTML = cats.length
+    ? cats.map(c => `
+      <div class="category-card" onclick="filterCategory('${escapeJs(c.name)}')">
+        <div class="category-icon">${escapeHtml(c.icon || '📁')}</div>
+        <div class="category-name">${escapeHtml(c.name)}</div>
+        <div class="category-count">${c.count} articles</div>
+      </div>
+    `).join('')
+    : `
+      <div class="category-card" onclick="filterCategory('Hardware Issues')">
+        <div class="category-icon">📁</div>
+        <div class="category-name">Hardware Issues</div>
+        <div class="category-count">0 articles</div>
+      </div>
+    `;
+
   el('totalCount').innerText = `${appState.total || 0} articles`;
   el('userName').innerText = appState.name || appState.email || 'User';
   el('userRole').innerText = appState.role || 'viewer';
   el('roleBadge').innerText = appState.role || 'viewer';
-
-  el('categoryGrid').innerHTML = (appState.categories || []).map(c => `
-    <div class="category-card" onclick="filterCategory('${escapeJs(c.name)}')">
-      <div class="category-icon">${escapeHtml(c.icon || '📁')}</div>
-      <div class="category-name">${escapeHtml(c.name)}</div>
-      <div class="category-count">${c.count} articles</div>
-    </div>
-  `).join('') || '<div class="category-card">No categories</div>';
-
-  el('category').innerHTML = (appState.categories || []).map(c =>
-    `<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}</option>`
-  ).join('');
 
   el('recentList').innerHTML = (appState.recent || []).map(a => `
     <div class="article-item">
@@ -93,6 +119,8 @@ function resetForm() {
   el('existingAttachmentName').value = '';
   el('createdBy').value = 'Jane Doe';
   el('visibility').value = 'public';
+  el('newCategoryName').value = '';
+  el('newCategoryIcon').value = '';
   if (el('category').options.length) el('category').selectedIndex = 0;
   el('panelTitle').innerText = 'Add Article';
   el('panelHint').innerText = 'Create a new knowledge base article.';
@@ -100,6 +128,26 @@ function resetForm() {
 
 function cancelEdit() {
   resetForm();
+}
+
+function addCustomCategory() {
+  const name = el('newCategoryName').value.trim();
+  const icon = el('newCategoryIcon').value.trim() || '📁';
+
+  if (!name) {
+    toast('Isi nama category custom terlebih dahulu.', 'error');
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(() => {
+      toast('Category baru berhasil ditambahkan.');
+      el('newCategoryName').value = '';
+      el('newCategoryIcon').value = '';
+      loadData(el('searchBox').value.trim());
+    })
+    .withFailureHandler(showError)
+    .addCategory(name, icon);
 }
 
 function saveArticle() {
@@ -142,14 +190,12 @@ function saveArticle() {
 
 function submitSave(payload) {
   google.script.run
-    .withSuccessHandler((res) => {
+    .withSuccessHandler(() => {
       toast('Data berhasil disimpan.');
       resetForm();
       loadData(el('searchBox').value.trim());
     })
-    .withFailureHandler((err) => {
-      showError(err);
-    })
+    .withFailureHandler(showError)
     .saveArticle(payload);
 }
 

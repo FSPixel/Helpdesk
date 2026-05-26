@@ -68,6 +68,13 @@
           <label>Category</label>
           <select id="category"></select>
 
+          <label>Custom Category</label>
+          <div class="custom-cat-row">
+            <input id="newCategoryName" type="text" placeholder="Add custom category">
+            <input id="newCategoryIcon" type="text" placeholder="📁" style="max-width:90px">
+            <button class="btn btn-ghost" onclick="addCustomCategory()">Add</button>
+          </div>
+
           <label>Visibility</label>
           <select id="visibility">
             <option value="public">Public</option>
