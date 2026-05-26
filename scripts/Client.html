@@ -6,10 +6,7 @@ function el(id){ return document.getElementById(id); }
 
 function toast(msg, type='success') {
   const t = el('toast');
-  if (!t) {
-    alert(msg);
-    return;
-  }
+  if (!t) { alert(msg); return; }
   t.className = `toast ${type}`;
   t.textContent = msg;
   t.classList.remove('hidden');
@@ -26,25 +23,19 @@ function loadData(query='') {
 
 function renderData(data) {
   appState = data || { categories: [], recent: [], total: 0, role: 'viewer', email: '', name: '' };
-
   const cats = Array.isArray(appState.categories) ? appState.categories : [];
   const select = el('category');
 
   if (cats.length) {
-    select.innerHTML = cats.map(c =>
-      `<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}</option>`
-    ).join('');
+    select.innerHTML = cats.map(c => `<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}</option>`).join('');
     select.value = cats[0].name;
   } else {
     select.innerHTML = `
       <option value="Hardware Issues">Hardware Issues</option>
-      <option value="Software & Apps">Software & Apps</option>
-      <option value="Network & Internet">Network & Internet</option>
-      <option value="Account & Security">Account & Security</option>
-      <option value="Onboarding">Onboarding</option>
-      <option value="Printer Support">Printer Support</option>
-      <option value="General Support">General Support</option>
-      <option value="Other">Other</option>
+      <option value="Software Troubleshooting">Software Troubleshooting</option>
+      <option value="Network Solutions">Network Solutions</option>
+      <option value="Account Access">Account Access</option>
+      <option value="Mobile Device Support">Mobile Device Support</option>
     `;
     select.value = 'Hardware Issues';
   }
@@ -58,11 +49,11 @@ function renderData(data) {
       </div>
     `).join('')
     : `
-      <div class="category-card" onclick="filterCategory('Hardware Issues')">
-        <div class="category-icon">📁</div>
-        <div class="category-name">Hardware Issues</div>
-        <div class="category-count">0 articles</div>
-      </div>
+      <div class="category-card"><div class="category-icon">📁</div><div class="category-name">Hardware Issues</div><div class="category-count">0 articles</div></div>
+      <div class="category-card"><div class="category-icon">⚙️</div><div class="category-name">Software Troubleshooting</div><div class="category-count">0 articles</div></div>
+      <div class="category-card"><div class="category-icon">🌐</div><div class="category-name">Network Solutions</div><div class="category-count">0 articles</div></div>
+      <div class="category-card"><div class="category-icon">🔑</div><div class="category-name">Account Access</div><div class="category-count">0 articles</div></div>
+      <div class="category-card"><div class="category-icon">📱</div><div class="category-name">Mobile Device Support</div><div class="category-count">0 articles</div></div>
     `;
 
   el('totalCount').innerText = `${appState.total || 0} articles`;
@@ -70,36 +61,47 @@ function renderData(data) {
   el('userRole').innerText = appState.role || 'viewer';
   el('roleBadge').innerText = appState.role || 'viewer';
 
-  el('recentList').innerHTML = (appState.recent || []).map(a => `
-    <div class="article-item">
-      <div class="article-top">
-        <div>
-          <div class="article-title">${escapeHtml(a.title)}
-            <span class="badge">${escapeHtml(a.category || '')}</span>
-            <span class="badge">${escapeHtml(a.visibility || 'public')}</span>
+  if (appState.recent && appState.recent.length) {
+    el('recentList').innerHTML = appState.recent.map(a => `
+      <div class="article-item">
+        <div class="article-top">
+          <div>
+            <div class="article-title">${escapeHtml(a.title)}
+              <span class="badge">${escapeHtml(a.category || '')}</span>
+              <span class="badge">${escapeHtml(a.visibility || 'public')}</span>
+            </div>
+            <div class="article-meta">${escapeHtml(a.tags || '')} • ${formatDate(a.updatedAt || a.createdAt)} • By ${escapeHtml(a.createdBy || '')}</div>
+            <div class="article-content">${escapeHtml(truncate(a.content || '', 180))}</div>
+            ${a.attachmentUrl ? `<div class="article-meta"><a href="${a.attachmentUrl}" target="_blank">Open attachment</a></div>` : ''}
           </div>
-          <div class="article-meta">${escapeHtml(a.tags || '')} • ${formatDate(a.updatedAt || a.createdAt)} • By ${escapeHtml(a.createdBy || '')}</div>
-          <div class="article-content">${escapeHtml(truncate(a.content || '', 180))}</div>
-          ${a.attachmentUrl ? `<div class="article-meta"><a href="${a.attachmentUrl}" target="_blank">Open attachment</a></div>` : ''}
-        </div>
-        <div class="row-actions">
-          <button class="link-btn" onclick="editArticle('${escapeJs(a.id)}')">Edit</button>
-          <button class="link-btn" onclick="exportArticle('${escapeJs(a.id)}')">PDF</button>
-          <button class="link-btn link-danger" onclick="deleteArticle('${escapeJs(a.id)}')">Delete</button>
+          <div class="row-actions">
+            <button class="link-btn" onclick="editArticle('${escapeJs(a.id)}')">Edit</button>
+            <button class="link-btn" onclick="exportArticle('${escapeJs(a.id)}')">PDF</button>
+            <button class="link-btn link-danger" onclick="deleteArticle('${escapeJs(a.id)}')">Delete</button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('') || '<div class="article-item">No articles found.</div>';
+    `).join('');
+  } else {
+    el('recentList').innerHTML = `
+      <div style="min-height:260px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#7b8794;">
+        <div style="font-size:42px;opacity:.35">🗒️</div>
+        <div style="margin-top:10px;font-size:16px;color:#3a3f49;">No articles are currently updated</div>
+      </div>
+    `;
+  }
 }
+
+function refreshAll(query='') { loadData(query); }
 
 function filterCategory(name){
   el('searchBox').value = name;
-  loadData(name);
+  refreshAll(name);
 }
 
 el('searchBox').addEventListener('input', function(){
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => loadData(this.value.trim()), 200);
+  searchTimer = setTimeout(() => refreshAll(this.value.trim()), 180);
 });
 
 function focusCreate() {
@@ -126,25 +128,18 @@ function resetForm() {
   el('panelHint').innerText = 'Create a new knowledge base article.';
 }
 
-function cancelEdit() {
-  resetForm();
-}
+function cancelEdit() { resetForm(); }
 
 function addCustomCategory() {
   const name = el('newCategoryName').value.trim();
   const icon = el('newCategoryIcon').value.trim() || '📁';
-
-  if (!name) {
-    toast('Isi nama category custom terlebih dahulu.', 'error');
-    return;
-  }
-
+  if (!name) { toast('Isi nama category custom terlebih dahulu.', 'error'); return; }
   google.script.run
     .withSuccessHandler(() => {
       toast('Category baru berhasil ditambahkan.');
       el('newCategoryName').value = '';
       el('newCategoryIcon').value = '';
-      loadData(el('searchBox').value.trim());
+      refreshAll(el('searchBox').value.trim());
     })
     .withFailureHandler(showError)
     .addCategory(name, icon);
@@ -155,11 +150,7 @@ function saveArticle() {
   const category = el('category').value;
   const content = el('content').value.trim();
   const createdBy = el('createdBy').value.trim();
-
-  if (!title || !category || !content || !createdBy) {
-    toast('Lengkapi Title, Category, Instructions, dan Created By.', 'error');
-    return;
-  }
+  if (!title || !category || !content || !createdBy) { toast('Lengkapi Title, Category, Instructions, dan Created By.', 'error'); return; }
 
   const file = el('file').files[0];
   const payload = {
@@ -193,7 +184,7 @@ function submitSave(payload) {
     .withSuccessHandler(() => {
       toast('Data berhasil disimpan.');
       resetForm();
-      loadData(el('searchBox').value.trim());
+      refreshAll(el('searchBox').value.trim());
     })
     .withFailureHandler(showError)
     .saveArticle(payload);
@@ -202,29 +193,8 @@ function submitSave(payload) {
 function editArticle(id) {
   google.script.run
     .withSuccessHandler(article => {
-      if (!article) {
-        toast('Article not found', 'error');
-        return;
-      }
-      if (typeof openModalContent === 'function') {
-        openModalContent(article);
-      } else {
-        el('articleId').value = article.id;
-        el('title').value = article.title || '';
-        el('category').value = article.category || '';
-        el('visibility').value = article.visibility || 'public';
-        el('tags').value = article.tags || '';
-        el('content').value = article.content || '';
-        el('createdBy').value = article.createdBy || 'Jane Doe';
-        el('existingAttachmentUrl').value = article.attachmentUrl || '';
-        el('existingAttachmentName').value = article.attachmentName || '';
-        el('existingAttachment').innerHTML = article.attachmentUrl
-          ? `Current file: <a href="${article.attachmentUrl}" target="_blank">${escapeHtml(article.attachmentName || 'open')}</a>`
-          : '';
-        el('panelTitle').innerText = 'Edit Article';
-        el('panelHint').innerText = 'Update the article and save changes.';
-        toast('Article loaded for editing.');
-      }
+      if (!article) { toast('Article not found', 'error'); return; }
+      openModalContent(article);
     })
     .withFailureHandler(showError)
     .getArticleById(id);
@@ -235,7 +205,7 @@ function deleteArticle(id) {
   google.script.run
     .withSuccessHandler(() => {
       toast('Article deleted.');
-      loadData(el('searchBox').value.trim());
+      refreshAll(el('searchBox').value.trim());
     })
     .withFailureHandler(showError)
     .deleteArticle(id);
@@ -243,18 +213,14 @@ function deleteArticle(id) {
 
 function exportArticle(id) {
   google.script.run
-    .withSuccessHandler(res => {
-      if (res && res.url) window.open(res.url, '_blank');
-    })
+    .withSuccessHandler(res => { if (res && res.url) window.open(res.url, '_blank'); })
     .withFailureHandler(showError)
     .exportArticlePdf(id);
 }
 
 function exportAllPdf() {
   google.script.run
-    .withSuccessHandler(res => {
-      if (res && res.url) window.open(res.url, '_blank');
-    })
+    .withSuccessHandler(res => { if (res && res.url) window.open(res.url, '_blank'); })
     .withFailureHandler(showError)
     .exportAllArticlesPdf(el('searchBox').value.trim());
 }
@@ -265,24 +231,11 @@ function showError(err) {
   console.error(err);
 }
 
-function formatDate(d){
-  try { return new Date(d).toLocaleString(); } catch(e) { return ''; }
-}
-
-function truncate(text, maxLen) {
-  const s = String(text || '');
-  return s.length > maxLen ? s.slice(0, maxLen).trim() + '...' : s;
-}
-
-function escapeHtml(s){
-  return String(s || '').replace(/[&<>"']/g, m => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[m]));
-}
+function formatDate(d){ try { return new Date(d).toLocaleString(); } catch(e) { return ''; } }
+function truncate(text, maxLen) { const s = String(text || ''); return s.length > maxLen ? s.slice(0, maxLen).trim() + '...' : s; }
+function escapeHtml(s){ return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
 function escapeJs(s){ return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
 
-window.addEventListener('load', function(){
-  loadData('');
-});
+window.addEventListener('load', function(){ refreshAll(''); });
 </script>

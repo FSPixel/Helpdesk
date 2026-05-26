@@ -27,17 +27,13 @@
     </header>
 
     <section class="hero">
-      <div class="hero-search">
-        <input id="searchBox" type="text" placeholder="Search for solutions (e.g., VPN setup, password reset, printer issue)">
-        <button class="btn btn-primary" onclick="focusCreate()">Add New Article</button>
-        <button class="btn btn-secondary" onclick="exportAllPdf()">Export PDF</button>
-      </div>
+      <input id="searchBox" class="hero-search-input" type="text" placeholder="Search for solutions (e.g., VPN setup, password reset, printer issue)">
       <h1>IT Support Knowledge Base</h1>
       <p>Find answers, submit solutions, and stay connected.</p>
     </section>
 
-    <main class="layout">
-      <section class="main-col">
+    <main class="page">
+      <section class="content">
         <div class="section-head">
           <h2>Browse by Category</h2>
           <div id="totalCount" class="total-count"></div>
@@ -47,19 +43,17 @@
         <div class="section-head">
           <h2>Recently Updated Articles</h2>
         </div>
-        <div id="recentList" class="article-list"></div>
+        <div id="recentList" class="article-panel"></div>
       </section>
 
-      <aside class="side-panel">
+      <aside class="sidebar">
         <div class="panel-card">
           <div class="panel-header">
             <div>
               <h2 id="panelTitle">Add Article</h2>
               <p id="panelHint">Create a new knowledge base article.</p>
             </div>
-            <div class="panel-actions-top">
-              <button class="btn btn-ghost" onclick="resetForm()">Reset</button>
-            </div>
+            <button class="btn btn-ghost" onclick="resetForm()">Reset</button>
           </div>
 
           <label>Article Title</label>
@@ -108,7 +102,6 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-
   <div id="modalWrap" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">

@@ -1,32 +1,18 @@
 <script>
 function openUsersEditor() {
-  google.script.run
-    .withSuccessHandler(renderUsersEditor)
-    .withFailureHandler(showUsersError)
-    .getUsersData();
+  google.script.run.withSuccessHandler(renderUsersEditor).withFailureHandler(showUsersError).getUsersData();
 }
-
 function renderUsersEditor(data) {
   const rows = (data && data.users) ? data.users : [];
   const body = document.getElementById('usersBody');
-
   body.innerHTML = `
     <div class="toolbar" style="margin-bottom:12px">
       <button class="btn btn-primary" onclick="addUserRow()">Add Row</button>
       <button class="btn btn-secondary" onclick="saveUsersData()">Save Users</button>
     </div>
-
     <div class="table-wrap">
       <table class="table" id="usersTable">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Active</th>
-            <th>Action</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Active</th><th>Action</th></tr></thead>
         <tbody>
           ${rows.map(r => `
             <tr>
@@ -53,10 +39,8 @@ function renderUsersEditor(data) {
       </table>
     </div>
   `;
-
   if (!rows.length) addUserRow();
 }
-
 function addUserRow() {
   const tbody = document.querySelector('#usersTable tbody');
   if (!tbody) return;
@@ -82,7 +66,6 @@ function addUserRow() {
   `;
   tbody.appendChild(tr);
 }
-
 function saveUsersData() {
   const rows = Array.from(document.querySelectorAll('#usersTable tbody tr')).map(tr => ([
     tr.querySelector('.u-email').value.trim(),
@@ -90,19 +73,11 @@ function saveUsersData() {
     tr.querySelector('.u-role').value,
     tr.querySelector('.u-active').value
   ])).filter(r => r[0]);
-
-  google.script.run
-    .withSuccessHandler(() => {
-      if (typeof toast === 'function') toast('Users saved.');
-    })
-    .withFailureHandler(showUsersError)
-    .saveUsers(rows);
+  google.script.run.withSuccessHandler(() => { if (typeof toast === 'function') toast('Users saved.'); }).withFailureHandler(showUsersError).saveUsers(rows);
 }
-
 function showUsersError(err) {
   const msg = (err && err.message) ? err.message : String(err || 'Users error');
-  if (typeof toast === 'function') toast(msg, 'error');
-  else alert(msg);
+  if (typeof toast === 'function') toast(msg, 'error'); else alert(msg);
   console.error(err);
 }
 </script>

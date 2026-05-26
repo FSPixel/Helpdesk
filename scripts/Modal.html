@@ -7,12 +7,10 @@ function openModalContent(article) {
         <label>Article Title</label>
         <input id="m_title" type="text" value="${escapeAttr(article.title || '')}" placeholder="Fixing Wi-Fi dropouts">
       </div>
-
       <div>
         <label>Category</label>
         <select id="m_category"></select>
       </div>
-
       <div>
         <label>Visibility</label>
         <select id="m_visibility">
@@ -20,28 +18,23 @@ function openModalContent(article) {
           <option value="private">Private</option>
         </select>
       </div>
-
       <div>
         <label>Created By</label>
         <input id="m_createdBy" type="text" value="${escapeAttr(article.createdBy || '')}" placeholder="Jane Doe">
       </div>
-
       <div>
         <label>Tags</label>
         <input id="m_tags" type="text" value="${escapeAttr(article.tags || '')}" placeholder="wifi, router, network">
       </div>
-
       <div class="full">
         <label>Instructions</label>
         <textarea id="m_content" rows="8" placeholder="Write step-by-step instructions...">${escapeHtml(article.content || '')}</textarea>
       </div>
-
       <div class="full">
         <label>Attachment</label>
         <input id="m_file" type="file" accept="image/*,.pdf,.doc,.docx,.txt">
         <div id="m_existingAttachment" class="muted"></div>
       </div>
-
       <div class="full" style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
         <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
         <button class="btn btn-primary" onclick="saveModalArticle('${escapeJs(article.id)}', '${escapeJs(article.attachmentUrl || '')}', '${escapeJs(article.attachmentName || '')}')">Save Changes</button>
@@ -50,9 +43,7 @@ function openModalContent(article) {
   `;
 
   const select = document.getElementById('m_category');
-  select.innerHTML = (appState.categories || []).map(c =>
-    `<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}</option>`
-  ).join('');
+  select.innerHTML = (appState.categories || []).map(c => `<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}</option>`).join('');
   select.value = article.category || '';
   document.getElementById('m_visibility').value = article.visibility || 'public';
 
@@ -83,17 +74,7 @@ function saveModalArticle(id, existingAttachmentUrl, existingAttachmentName) {
     return;
   }
 
-  const payload = {
-    id,
-    title,
-    category,
-    visibility,
-    tags,
-    content,
-    createdBy,
-    existingAttachmentUrl,
-    existingAttachmentName
-  };
+  const payload = { id, title, category, visibility, tags, content, createdBy, existingAttachmentUrl, existingAttachmentName };
 
   if (file) {
     const reader = new FileReader();
@@ -115,7 +96,7 @@ function submitModalSave(payload) {
       if (typeof toast === 'function') toast('Perubahan berhasil disimpan.');
       closeModal();
       resetForm();
-      loadData(document.getElementById('searchBox').value.trim());
+      refreshAll(document.getElementById('searchBox').value.trim());
     })
     .withFailureHandler(err => {
       if (typeof showError === 'function') showError(err);
